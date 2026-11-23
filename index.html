@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10192a">
+  <title>PID 小實驗室｜精密定位平台模擬器</title>
+  <style>
+    :root{--bg:#0b1120;--panel:#131e32;--panel2:#17243a;--line:#2b3b52;--text:#eef4ff;--muted:#a7b6cb;--blue:#63b9ff;--mint:#62e0bd;--orange:#ffc77a;--purple:#b5a7ff;--bad:#ff94a3}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 18% 0%,#1a3452 0%,transparent 39%),linear-gradient(120deg,#0b1120,#0f1728 63%,#0b1120);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.5;min-height:100vh}
+    .wrap{max-width:1160px;margin:auto;padding:29px 24px 50px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:24px}
+    .eyebrow{color:var(--mint);font-weight:800;letter-spacing:.16em;font-size:12px;margin-bottom:6px}
+    h1{font-size:clamp(25px,4vw,36px);line-height:1.22;margin:0 0 8px;letter-spacing:.015em}
+    .lead{margin:0;color:var(--muted);max-width:750px;font-size:14px}
+    .pill{border:1px solid #42607e;background:#1a3451;border-radius:100px;padding:7px 12px;font-size:12px;color:#c4eaff;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:18px;align-items:start}
+    .panel{background:rgba(20,31,51,.96);border:1px solid var(--line);border-radius:19px;padding:21px;box-shadow:0 14px 45px rgba(0,0,0,.15)}
+    h2{font-size:16px;margin:0 0 14px}.sub{font-size:12px;color:var(--muted);margin:-8px 0 18px}
+    .preset-row{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 19px}
+    button{font:inherit;cursor:pointer;border:0}
+    .preset{border:1px solid #3b536e;background:#1a2940;color:#d9e6f6;padding:8px 12px;border-radius:9px;font-size:13px;min-width:58px}
+    .preset[aria-pressed="true"]{border-color:var(--mint);background:#194e4a;color:#e0fff6}
+    .control{margin-bottom:18px}
+    .control-head{display:flex;align-items:center;justify-content:space-between;font-size:13px;gap:8px;margin-bottom:8px}
+    output{font-weight:750;color:var(--mint);font-variant-numeric:tabular-nums}
+    input[type=range]{display:block;width:100%;accent-color:#6bd7c3;cursor:pointer}
+    .range-ends{display:flex;justify-content:space-between;font-size:11px;color:#8297b2}
+    .distbox{background:#192a41;border:1px solid #304762;padding:12px;border-radius:12px;margin:2px 0 17px}
+    .toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:650}
+    .toggle input{width:18px;height:18px;accent-color:var(--mint)}
+    .tiny{font-size:12px;line-height:1.6;color:var(--muted);margin:8px 0 0}
+    .actions{display:flex;gap:9px}.primary{background:var(--mint);color:#0b2432;font-weight:800;border-radius:10px;padding:11px 15px;flex:1}.secondary{background:#253650;color:#edf3ff;border:1px solid #38506e;border-radius:10px;padding:11px 15px}
+    .primary:hover{background:#91f3d6}.secondary:hover,.preset:hover{filter:brightness(1.16)}button:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+    .right{display:grid;gap:18px}
+    .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .kpi{border:1px solid #314761;background:#192942;padding:14px;border-radius:13px}
+    .kpi .name{font-size:12px;color:var(--muted)}.kpi .value{font-size:23px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}.kpi .unit{font-size:12px;color:var(--muted);font-weight:500;margin-left:3px}
+    .chart-panel{padding-bottom:15px}
+    .chart-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.chart-top h2{margin-bottom:4px}
+    .legend{display:flex;flex-wrap:wrap;gap:15px;color:var(--muted);font-size:12px}.legend i{display:inline-block;width:17px;height:3px;vertical-align:middle;margin-right:5px;border-radius:3px}.legend .ref{background:var(--orange)}.legend .pos{background:var(--mint)}
+    canvas{display:block;width:100%;height:330px;border-radius:12px;margin-top:17px;background:#0d192b}
+    .status{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;color:var(--muted);font-size:12px}
+    .status b{color:var(--mint)}
+    .note{border-left:3px solid var(--blue);padding:2px 0 2px 13px;font-size:13px;color:#ccdaed;margin:0}
+    footer{font-size:12px;color:#879bb4;margin:21px 0 0;line-height:1.7}
+    @media(max-width:830px){.grid{grid-template-columns:1fr}.wrap{padding:22px 14px}header{align-items:start}.pill{display:none}.panel{padding:18px}canvas{height:285px}}
+    @media(max-width:470px){.kpis{gap:7px}.kpi{padding:10px}.kpi .value{font-size:19px}.kpi .name{font-size:11px}canvas{height:255px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">TAICA · WEEK 5 / MY WEB EXPERIMENT</div>
+      <h1>🎛️ PID 小實驗室</h1>
+      <p class="lead">想知道 P、I、D 各自有什麼影響？調整參數，看看精密定位平台如何追蹤目標位置，以及受到擾動時會發生什麼事。</p>
+    </div>
+    <span class="pill">免安裝 · 單一 HTML</span>
+  </header>
+  <div class="grid">
+    <section class="panel" aria-labelledby="controls-heading">
+      <h2 id="controls-heading">01 / 控制器設定</h2>
+      <p class="sub">先試試 P、PD、PID 三種控制方式，再自行調整。</p>
+      <div class="preset-row" aria-label="控制器預設模式">
+        <button class="preset" data-preset="P" aria-pressed="false">只用 P</button>
+        <button class="preset" data-preset="PD" aria-pressed="false">PD</button>
+        <button class="preset" data-preset="PID" aria-pressed="true">PID</button>
+        <button class="preset" data-preset="custom" aria-pressed="false">自訂</button>
+      </div>
+      <div class="control">
+        <div class="control-head"><label for="kp">比例增益 Kp</label><output id="kp-v" for="kp">0.040</output></div>
+        <input id="kp" type="range" min="0" max="0.08" step="0.002" value="0.04">
+        <div class="range-ends"><span>0</span><span>0.080</span></div>
+      </div>
+      <div class="control">
+        <div class="control-head"><label for="ki">積分增益 Ki</label><output id="ki-v" for="ki">0.009</output></div>
+        <input id="ki" type="range" min="0" max="0.025" step="0.001" value="0.009">
+        <div class="range-ends"><span>0</span><span>0.025</span></div>
+      </div>
+      <div class="control">
+        <div class="control-head"><label for="kd">微分增益 Kd</label><output id="kd-v" for="kd">0.008</output></div>
+        <input id="kd" type="range" min="0" max="0.020" step="0.001" value="0.008">
+        <div class="range-ends"><span>0</span><span>0.020</span></div>
+      </div>
+      <div class="control">
+        <div class="control-head"><label for="target">目標位置</label><output id="target-v" for="target">5.0 mm</output></div>
+        <input id="target" type="range" min="1" max="10" step="0.5" value="5">
+        <div class="range-ends"><span>1 mm</span><span>10 mm</span></div>
+      </div>
+      <div class="distbox">
+        <label class="toggle" for="disturbance"><input type="checkbox" id="disturbance" checked>在第 3 秒加入外力擾動</label>
+        <p class="tiny">觀察不同控制器能否把位置拉回目標。擾動為固定方向的 0.06 N 外力。</p>
+      </div>
+      <div class="actions">
+        <button id="start" class="primary" type="button">▶ 開始模擬</button>
+        <button id="reset" class="secondary" type="button">↺ 重設</button>
+      </div>
+      <p class="tiny">調整滑桿會即時生效；按「重設」可用新參數從頭比較。</p>
+    </section>
+    <div class="right">
+      <section class="panel chart-panel" aria-labelledby="chart-heading">
+        <div class="chart-top">
+          <div><h2 id="chart-heading">02 / 平台位置追蹤</h2><p class="sub" style="margin:0">橫軸是時間，縱軸是平台位置（mm）</p></div>
+          <div class="legend"><span><i class="ref"></i>目標位置</span><span><i class="pos"></i>實際位置</span></div>
+        </div>
+        <canvas id="chart" role="img" aria-label="模擬位置隨時間變化折線圖"></canvas>
+        <div class="status"><span id="status">尚未開始。可先選擇控制器模式。</span><span>模擬時間 <b id="time">0.00 s</b> / 10 s</span></div>
+      </section>
+      <div class="kpis" aria-label="模擬數值">
+        <div class="kpi"><div class="name">目前位置</div><div class="value" id="position">0.00<span class="unit">mm</span></div></div>
+        <div class="kpi"><div class="name">目前誤差</div><div class="value" id="error">5.00<span class="unit">mm</span></div></div>
+        <div class="kpi"><div class="name">最大超越量</div><div class="value" id="overshoot">0.0<span class="unit">%</span></div></div>
+      </div>
+      <section class="panel" aria-labelledby="why-heading">
+        <h2 id="why-heading">03 / 我想觀察的事</h2>
+        <p class="note">只用 P 時，遇到持續擾動可能留下穩態誤差；加入 I 能逐步消除偏差；D 則提供類似速度阻尼的效果。試著切換模式，比較波形有什麼差別。</p>
+      </section>
+    </div>
+  </div>
+  <footer>這是一個教學用途的簡化單軸質量－阻尼模型，不代表實際氣浮平台的完整動態。模型：mẍ = u − cẋ + d，m = 0.5 kg、c = 0.6 N·s/m；控制力限制 ±1.2 N。</footer>
+</main>
+<script>
+(()=>{
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const sliders=['kp','ki','kd','target'];
+  const cv=$('chart'),ctx=cv.getContext('2d');
+  const DURATION=10,DT=.005,MASS=.5,DAMP=.6,MAX_FORCE=1.2,DIST_FORCE=.06;
+  let state,points=[],running=false,raf=0,prevFrame=0,carry=0,chosen='PID',peak=0;
+  const values=()=>Object.fromEntries(sliders.map(k=>[k,Number($(k).value)]));
+  function formatValue(){const p=values(); for(const k of ['kp','ki','kd']) $(k+'-v').textContent=p[k].toFixed(3);$('target-v').textContent=p.target.toFixed(1)+' mm';}
+  function choose(name){chosen=name;const sets={P:[.04,0,0],PD:[.04,0,.008],PID:[.04,.009,.008]};if(sets[name])['kp','ki','kd'].forEach((k,i)=>$(k).value=sets[name][i]);document.querySelectorAll('[data-preset]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.preset===name)));formatValue();if(!running&&state.t===0)draw();}
+  function clamp(x,lo,hi){return Math.min(hi,Math.max(lo,x));}
+  function reset(){running=false;cancelAnimationFrame(raf);raf=0;prevFrame=0;carry=0;state={t:0,x:0,v:0,integral:0};peak=0;points=[{t:0,x:0}];$('start').textContent='▶ 開始模擬';$('status').textContent='已重設。按開始查看平台反應。';refresh();}
+  function integrate(){
+    const {kp,ki,kd,target}=values();
+    const err=target-state.x*1000,vmm=state.v*1000;
+    const candidate=clamp(state.integral+err*DT,-70,70);
+    const raw=kp*err+ki*candidate-kd*vmm;
+    const u=clamp(raw,-MAX_FORCE,MAX_FORCE);
+    // Conditional integration anti-windup.
+    if(raw===u||(raw>u&&err<0)||(raw<u&&err>0)) state.integral=candidate;
+    const force=($('disturbance').checked&&state.t>=3)?DIST_FORCE:0;
+    const actual=clamp(kp*err+ki*state.integral-kd*vmm,-MAX_FORCE,MAX_FORCE);
+    const a=(actual-DAMP*state.v+force)/MASS;
+    state.v+=a*DT;
+    state.x+=state.v*DT;
+    state.t=Math.min(DURATION,state.t+DT);
+    const position=state.x*1000;
+    peak=Math.max(peak,position);
+    points.push({t:state.t,x:position});
+  }
+  function updateStatus(){if(!running) return; $('status').textContent=$('disturbance').checked&&state.t>=3?'● 外力擾動已加入':'● 模擬進行中';}
+  function tick(time){
+    if(!running) return;
+    if(prevFrame===0)prevFrame=time;
+    const elapsed=Math.min((time-prevFrame)/1000,.07);prevFrame=time;
+    carry+=elapsed;let count=0;
+    while(carry>=DT&&state.t<DURATION&&count<50){integrate();carry-=DT;count++;}
+    if(state.t>=DURATION){running=false;$('start').textContent='↻ 再次模擬';$('status').textContent='模擬完成。試著換個參數再比較。';}
+    updateStatus();refresh();
+    if(running)raf=requestAnimationFrame(tick);
+  }
+  function start(){if(state.t>=DURATION)reset();running=!running;if(running){$('start').textContent='Ⅱ 暫停';$('status').textContent='● 模擬進行中';prevFrame=0;raf=requestAnimationFrame(tick);}else{$('start').textContent='▶ 繼續';$('status').textContent='已暫停';cancelAnimationFrame(raf);}}
+  function refresh(){const tar=values().target,pos=state.x*1000;$('position').innerHTML=pos.toFixed(2)+'<span class="unit">mm</span>';$('error').innerHTML=(tar-pos).toFixed(2)+'<span class="unit">mm</span>';$('overshoot').innerHTML=Math.max(0,(peak-tar)/tar*100).toFixed(1)+'<span class="unit">%</span>';$('time').textContent=state.t.toFixed(2)+' s';draw();}
+  function draw(){
+    const box=cv.getBoundingClientRect();if(box.width===0)return;
+    const dpr=Math.min(window.devicePixelRatio||1,2),w=box.width,h=box.height;
+    if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+    const L=48,R=18,T=24,B=37,plotW=w-L-R,plotH=h-T-B;
+    const tar=values().target,ys=points.map(p=>p.x),mn=Math.min(-1,...ys,tar-2),mx=Math.max(11,...ys,tar+2),pad=Math.max(1,(mx-mn)*.08),yMin=mn-pad,yMax=mx+pad;
+    const xx=t=>L+t/DURATION*plotW,yy=y=>T+(yMax-y)/(yMax-yMin)*plotH;
+    ctx.font='11px system-ui';ctx.lineWidth=1;ctx.fillStyle='#96abc5';ctx.textBaseline='middle';
+    for(let i=0;i<=5;i++){const val=yMin+(yMax-yMin)*i/5,y=yy(val);ctx.strokeStyle='#273b55';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(val.toFixed(1),L-8,y);}
+    for(let i=0;i<=5;i++){const t=i*2,x=xx(t);ctx.strokeStyle='#25364f';ctx.beginPath();ctx.moveTo(x,T);ctx.lineTo(x,h-B);ctx.stroke();ctx.textAlign='center';ctx.fillStyle='#96abc5';ctx.fillText(String(t),x,h-B+18);}
+    ctx.fillStyle='#9cb3cf';ctx.textAlign='left';ctx.fillText('mm',8,13);ctx.textAlign='right';ctx.fillText('s',w-10,h-9);
+    if($('disturbance').checked){const dx=xx(3);ctx.strokeStyle='#7c6d9b';ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(dx,T);ctx.lineTo(dx,h-B);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#b6a5df';ctx.textAlign='left';ctx.fillText('擾動',dx+5,T+10);}
+    ctx.strokeStyle='#ffc77a';ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(L,yy(tar));ctx.lineTo(w-R,yy(tar));ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='#62e0bd';ctx.lineWidth=2.7;ctx.lineJoin='round';ctx.beginPath();
+    for(let i=0;i<points.length;i++){const p=points[i];if(i===0)ctx.moveTo(xx(p.t),yy(p.x));else ctx.lineTo(xx(p.t),yy(p.x));}
+    ctx.stroke();
+    if(points.length){const p=points[points.length-1];ctx.fillStyle='#62e0bd';ctx.beginPath();ctx.arc(xx(p.t),yy(p.x),3.8,0,2*Math.PI);ctx.fill();}
+  }
+  document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>choose(b.dataset.preset)));
+  sliders.forEach(k=>$(k).addEventListener('input',()=>{formatValue();if(['kp','ki','kd'].includes(k)){chosen='custom';document.querySelectorAll('[data-preset]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.preset==='custom')));}refresh();}));
+  $('disturbance').addEventListener('change',refresh);
+  $('start').addEventListener('click',start);
+  $('reset').addEventListener('click',reset);
+  window.addEventListener('resize',draw);
+  reset();choose('PID');
+})();
+</script>
+</body>
+</html>
